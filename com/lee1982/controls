@@ -1,0 +1,105 @@
+package com.lee1982.controls
+{
+	import flash.display.DisplayObject;
+	import flash.display.Stage;
+	import flash.events.MouseEvent;
+	import flash.utils.Dictionary;
+
+	/**
+	 * @author  Lee
+	 * @e-Mail  seemefly1982@gmail.com
+	 * @ver v1.0
+	 * @created Oct 29, 2014 6:27:33 AM
+	 *
+	 */
+	public class Move
+	{
+		private static var _targets:Dictionary = new Dictionary();
+		
+		public function Move()
+		{
+			
+		}
+		
+		public static function addTarget(obj:DisplayObject, downFunc:Function, 
+										 moveFunc:Function, upFunc:Function):void{
+			
+			if(_targets[obj]) return;
+			
+			var stage:Stage = null;
+			var isDown:Boolean = false;
+			var lastX:Number = 0;
+			var lastY:Number = 0;
+			var mouseX:Number = 0;
+			var mouseY:Number = 0;
+			var mouseDown:Function = null;
+			var mouseMove:Function = null;
+			var mouseUp:Function = null;
+			var obj:DisplayObject = obj;
+			var downHandler:Function = downFunc;
+			var moveHandler:Function = moveFunc;
+			var upHandler:Function = upFunc;
+			
+			isDown = false;
+			
+			mouseDown = function (event:MouseEvent):void{
+				if(!stage){
+					stage = obj.stage;
+					if(!stage) return;
+				}
+				isDown = true;
+				lastX = obj.x;
+				lastY = obj.y;
+				mouseX = stage.mouseX;
+				mouseY = stage.mouseY;
+				stage.addEventListener(MouseEvent.MOUSE_MOVE, mouseMove);
+				stage.addEventListener(MouseEvent.MOUSE_UP, mouseUp);
+				if(downHandler is Function){
+					if(downHandler.length == 1){
+						downHandler(event);					
+					}else{
+						downHandler();
+					}
+				}
+				
+			};
+			
+			mouseMove = function (event:MouseEvent):void{
+				if(!isDown){
+					return;
+				}
+				if(moveHandler is Function){
+					moveHandler(lastX, lastY, int(stage.mouseX - mouseX), int(stage.mouseY - mouseY));
+				}
+			};
+			
+			mouseUp = function (event:MouseEvent):void{
+				isDown = false;
+				stage.removeEventListener(MouseEvent.MOUSE_MOVE, mouseMove);
+				stage.removeEventListener(MouseEvent.MOUSE_UP, mouseUp);
+				if(upHandler is Function){upHandler();};
+			};
+			
+			obj.addEventListener(MouseEvent.MOUSE_DOWN, mouseDown);
+			
+			var removeEvent:Function = function ():void{
+				if(!stage) return;
+				stage.removeEventListener(MouseEvent.MOUSE_MOVE, mouseMove);
+				stage.removeEventListener(MouseEvent.MOUSE_UP, mouseUp);
+			};
+			_targets[obj] = {
+				mouseDown:mouseDown,
+				removeEvent:removeEvent
+			};
+		}
+		
+		public static function removeTarget(target:DisplayObject):void{
+			var obj:Object = _targets[target];
+			if(obj){
+				target.removeEventListener(MouseEvent.MOUSE_DOWN, obj.mouseDown);
+				obj.removeEvent();
+				delete _targets[target];
+			}
+		}
+	}
+}
